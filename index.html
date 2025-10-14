@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>민호특공대 랜덤 영상 재생기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", Arial, sans-serif;
+            background: linear-gradient(135deg, #00CEC9 0%, #74B9FF 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 206, 201, 0.3);
+            overflow: hidden;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #00CEC9 0%, #00B8B2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '⚡';
+            position: absolute;
+            font-size: 150px;
+            opacity: 0.1;
+            top: -30px;
+            right: -20px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            font-weight: 800;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .header .subtitle {
+            font-size: 16px;
+            opacity: 0.95;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        .header .team-name {
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            background: #000;
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .controls {
+            padding: 30px;
+            text-align: center;
+            background: linear-gradient(to bottom, white 0%, #f8fcfc 100%);
+        }
+        .btn {
+            background: linear-gradient(135deg, #00CEC9 0%, #00B8B2 100%);
+            color: white;
+            border: none;
+            padding: 16px 45px;
+            font-size: 17px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(0, 206, 201, 0.3);
+            letter-spacing: -0.3px;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 206, 201, 0.4);
+            background: linear-gradient(135deg, #00B8B2 0%, #00CEC9 100%);
+        }
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        .playlist-section {
+            padding: 35px 30px;
+            background: #F0FFFE;
+            border-top: 3px solid #00CEC9;
+        }
+        .playlist-section h3 {
+            font-size: 20px;
+            color: #2d3436;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 700;
+        }
+        .playlist-section h3 .count {
+            color: #00CEC9;
+            font-weight: 800;
+            font-size: 22px;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+        .video-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 206, 201, 0.15);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .video-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0, 206, 201, 0.25);
+            border-color: #00CEC9;
+        }
+        .video-thumbnail {
+            position: relative;
+            padding-bottom: 56.25%;
+            background: #000;
+            overflow: hidden;
+        }
+        .video-thumbnail img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        .video-card:hover .video-thumbnail img {
+            transform: scale(1.05);
+        }
+        .video-thumbnail .play-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 206, 201, 0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 206, 201, 0.4);
+        }
+        .video-card:hover .play-overlay {
+            opacity: 1;
+        }
+        .play-overlay::after {
+            content: '▶';
+            color: white;
+            font-size: 22px;
+            margin-left: 4px;
+        }
+        .video-info {
+            padding: 14px;
+            background: white;
+        }
+        .video-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3436;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 42px;
+        }
+        .footer {
+            padding: 20px;
+            text-align: center;
+            background: white;
+            color: #636e72;
+            font-size: 13px;
+            border-top: 1px solid #e9f5f5;
+        }
+        .footer .heart {
+            color: #00CEC9;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            10%, 30% { transform: scale(1.1); }
+            20%, 40% { transform: scale(1); }
+        }
+        @media (max-width: 600px) {
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 26px;
+            }
+            .btn {
+                padding: 14px 35px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 랜덤 영상 재생기</h1>
+            <div class="subtitle">⚡ 유튜브 총공 함께해요! ⚡</div>
+            <div class="team-name">Made by 민호특공대 💙</div>
+        </div>
+        
+        <div class="video-wrapper">
+            <iframe id="videoFrame" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+            </iframe>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="loadRandomVideo()">🔄 다른 영상 보기</button>
+        </div>
+        
+        <div class="playlist-section">
+            <h3>📋 총공 재생목록 <span class="count" id="videoCount">0</span>개</h3>
+            <div class="video-grid" id="videoGrid"></div>
+        </div>
+        
+        <div class="footer">
+            Made with <span class="heart">💙</span> by 민호특공대
+        </div>
+    </div>
+
+    <script>
+        const videos = [
+            {
+                id: 'Ghg7vG3NMs4',
+                title: 'Hankyeryeong Pass'
+            },
+            {
+                id: 'ILppFoa3FTI',
+                title: 'Lonely Love'
+            },
+            {
+                id: 'DKgiBUaZXr4',
+                title: 'My Reflection in My Heart'
+            },
+            {
+                id: '33xZoSnV5t0',
+                title: '[MV] Stay by My Side(내 곁에 있어주)'
+            },
+            {
+                id: '1LlNcwtxsgg',
+                title: 'I'll Give You the Love I Have Left'
+            },
+            {
+                id: 'rsW-F7IRGmU',
+                title: 'Just a Friend'
+            },
+            {
+                id: 'H8ZnFKkc7ps',
+                title: 'That Day'
+            },
+            {
+                id: 'q78AVE07wdI',
+                title: 'I will let go'
+            }
+        ];
+
+        function loadRandomVideo() {
+            const randomIndex = Math.floor(Math.random() * videos.length);
+            const selectedVideo = videos[randomIndex];
+            
+            const remainingVideos = videos.filter((v, idx) => idx !== randomIndex);
+            const shuffledRemaining = remainingVideos.sort(() => Math.random() - 0.5);
+            const playlist = [selectedVideo.id, ...shuffledRemaining.map(v => v.id)].join(',');
+            
+            const embedUrl = `https://www.youtube.com/embed/${selectedVideo.id}?rel=0&playlist=${playlist}&autoplay=1`;
+            
+            document.getElementById('videoFrame').src = embedUrl;
+        }
+
+        function playSpecificVideo(index) {
+            const selectedVideo = videos[index];
+            
+            const remainingVideos = videos.filter((v, idx) => idx !== index);
+            const shuffledRemaining = remainingVideos.sort(() => Math.random() - 0.5);
+            const playlist = [selectedVideo.id, ...shuffledRemaining.map(v => v.id)].join(',');
+            
+            const embedUrl = `https://www.youtube.com/embed/${selectedVideo.id}?rel=0&playlist=${playlist}&autoplay=1`;
+            
+            document.getElementById('videoFrame').src = embedUrl;
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function initializePlaylist() {
+            const videoGridEl = document.getElementById('videoGrid');
+            const videoCountEl = document.getElementById('videoCount');
+            
+            videoCountEl.textContent = videos.length;
+            
+            videos.forEach((video, idx) => {
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.onclick = () => playSpecificVideo(idx);
+                
+                card.innerHTML = `
+                    <div class="video-thumbnail">
+                        <img src="https://img.youtube.com/vi/${video.id}/mqdefault.jpg" alt="${video.title}">
+                        <div class="play-overlay"></div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">${video.title}</div>
+                    </div>
+                `;
+                
+                videoGridEl.appendChild(card);
+            });
+        }
+
+        window.onload = function() {
+            initializePlaylist();
+            loadRandomVideo();
+        };
+    </script>
+</body>
+</html>
